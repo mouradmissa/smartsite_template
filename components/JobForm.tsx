@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import type { Job, Resource, Task } from "@/lib/types";
-import { Save, ArrowLeft, X, Check } from "lucide-react";
+import { Save, ArrowLeft, X, Check, Plus, UserPlus, Wrench } from "lucide-react";
 import Link from "next/link";
+import { mutate } from "swr";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -49,6 +50,16 @@ export default function JobForm({ mode, initialData }: JobFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [humanDropdownOpen, setHumanDropdownOpen] = useState(false);
   const [equipmentDropdownOpen, setEquipmentDropdownOpen] = useState(false);
+
+  // Inline resource creation state
+  const [showAddHuman, setShowAddHuman] = useState(false);
+  const [newHumanName, setNewHumanName] = useState("");
+  const [newHumanRole, setNewHumanRole] = useState("");
+  const [addingHuman, setAddingHuman] = useState(false);
+  const [showAddEquipment, setShowAddEquipment] = useState(false);
+  const [newEquipmentName, setNewEquipmentName] = useState("");
+  const [newEquipmentType, setNewEquipmentType] = useState("");
+  const [addingEquipment, setAddingEquipment] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -131,6 +142,57 @@ export default function JobForm({ mode, initialData }: JobFormProps) {
     setSelectedEquipment((prev) =>
       prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id]
     );
+  }
+
+  async function handleAddHuman() {
+    if (!newHumanName.trim()) return;
+    setAddingHuman(true);
+    try {
+      const res = await fetch("/api/resources", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newHumanName.trim(),
+          type: "Human",
+          role: newHumanRole.trim() || undefined,
+        }),
+      });
+      if (res.ok) {
+        const newResource = await res.json();
+        await mutate("/api/resources?type=Human");
+        setSelectedHumans((prev) => [...prev, newResource.id]);
+        setNewHumanName("");
+        setNewHumanRole("");
+        setShowAddHuman(false);
+      }
+    } finally {
+      setAddingHuman(false);
+    }
+  }
+
+  async function handleAddEquipment() {
+    if (!newEquipmentName.trim()) return;
+    setAddingEquipment(true);
+    try {
+      const res = await fetch("/api/resources", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newEquipmentName.trim(),
+          type: "Equipment",
+        }),
+      });
+      if (res.ok) {
+        const newResource = await res.json();
+        await mutate("/api/resources?type=Equipment");
+        setSelectedEquipment((prev) => [...prev, newResource.id]);
+        setNewEquipmentName("");
+        setNewEquipmentType("");
+        setShowAddEquipment(false);
+      }
+    } finally {
+      setAddingEquipment(false);
+    }
   }
 
   return (
@@ -368,6 +430,63 @@ export default function JobForm({ mode, initialData }: JobFormProps) {
                 })}
               </div>
             )}
+
+            {/* Add New Human Inline */}
+            {!showAddHuman ? (
+              <button
+                type="button"
+                onClick={() => setShowAddHuman(true)}
+                className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+              >
+                <UserPlus size={14} />
+                Add New Human
+              </button>
+            ) : (
+              <div className="mt-3 p-4 rounded-lg border border-primary/20 bg-primary/5">
+                <div className="flex items-center gap-2 mb-3">
+                  <UserPlus size={16} className="text-primary" />
+                  <span className="text-sm font-semibold text-foreground">New Team Member</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    value={newHumanName}
+                    onChange={(e) => setNewHumanName(e.target.value)}
+                    placeholder="Name *"
+                    className="px-3 py-2 rounded-lg border border-border bg-input text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <input
+                    type="text"
+                    value={newHumanRole}
+                    onChange={(e) => setNewHumanRole(e.target.value)}
+                    placeholder="Role (optional)"
+                    className="px-3 py-2 rounded-lg border border-border bg-input text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                <div className="flex items-center gap-2 mt-3">
+                  <button
+                    type="button"
+                    onClick={handleAddHuman}
+                    disabled={addingHuman || !newHumanName.trim()}
+                    className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    <Plus size={14} />
+                    {addingHuman ? "Adding..." : "Save"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddHuman(false);
+                      setNewHumanName("");
+                      setNewHumanRole("");
+                    }}
+                    className="px-3 py-1.5 rounded-lg border border-border text-foreground text-sm font-medium hover:bg-secondary transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Multi-select Assigned Equipment */}
@@ -442,6 +561,63 @@ export default function JobForm({ mode, initialData }: JobFormProps) {
                     </span>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Add New Equipment Inline */}
+            {!showAddEquipment ? (
+              <button
+                type="button"
+                onClick={() => setShowAddEquipment(true)}
+                className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:text-accent/80 transition-colors"
+              >
+                <Wrench size={14} />
+                Add New Equipment
+              </button>
+            ) : (
+              <div className="mt-3 p-4 rounded-lg border border-accent/20 bg-accent/5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Wrench size={16} className="text-accent" />
+                  <span className="text-sm font-semibold text-foreground">New Equipment</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    value={newEquipmentName}
+                    onChange={(e) => setNewEquipmentName(e.target.value)}
+                    placeholder="Equipment name *"
+                    className="px-3 py-2 rounded-lg border border-border bg-input text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <input
+                    type="text"
+                    value={newEquipmentType}
+                    onChange={(e) => setNewEquipmentType(e.target.value)}
+                    placeholder="Type (optional)"
+                    className="px-3 py-2 rounded-lg border border-border bg-input text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                <div className="flex items-center gap-2 mt-3">
+                  <button
+                    type="button"
+                    onClick={handleAddEquipment}
+                    disabled={addingEquipment || !newEquipmentName.trim()}
+                    className="px-3 py-1.5 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    <Plus size={14} />
+                    {addingEquipment ? "Adding..." : "Save"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddEquipment(false);
+                      setNewEquipmentName("");
+                      setNewEquipmentType("");
+                    }}
+                    className="px-3 py-1.5 rounded-lg border border-border text-foreground text-sm font-medium hover:bg-secondary transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             )}
           </div>

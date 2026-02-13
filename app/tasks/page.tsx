@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import MainLayout from '@/components/MainLayout';
 import PageHeader from '@/components/PageHeader';
 import { tasks, jobs } from '@/lib/mockData';
@@ -115,7 +116,7 @@ export default function TasksPage() {
                 const isExpanded = expandedTaskId === task.id;
 
                 return (
-                  <tbody key={task.id}>
+                  <React.Fragment key={task.id}>
                     <tr className="border-b border-border hover:bg-secondary/30 transition-colors">
                       <td className="px-4 py-4 text-center">
                         <button
@@ -237,7 +238,7 @@ export default function TasksPage() {
                         </td>
                       </tr>
                     )}
-                  </tbody>
+                  </React.Fragment>
                 );
               })}
             </tbody>
