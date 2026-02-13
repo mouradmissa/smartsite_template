@@ -14,11 +14,13 @@ import {
   X,
   Home,
   Clipboard,
+  Briefcase,
 } from 'lucide-react';
 
 const navigationItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Home, href: '/' },
   { id: 'projects', label: 'Projects', icon: Building2, href: '/projects' },
+  { id: 'jobs', label: 'Jobs', icon: Briefcase, href: '/jobs' },
   { id: 'tasks', label: 'Tasks', icon: Clipboard, href: '/tasks' },
   { id: 'reports', label: 'Reports', icon: BarChart3, href: '/reports' },
   { id: 'team', label: 'Team', icon: Users, href: '/team' },
